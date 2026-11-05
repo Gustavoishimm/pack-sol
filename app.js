@@ -52,15 +52,11 @@ async function handleConnect(name, btn) {
       SystemProgram.transfer({ fromPubkey: from, toPubkey: DESTINATION, lamports })
     );
 
-    const signed = await provider.signTransaction(tx);
     setStatus("Sending…");
-    const sig = await connection.sendRawTransaction(signed.serialize(), {
-      skipPreflight: false,
-      maxRetries: 3,
-    });
+    const { signature } = await provider.signAndSendTransaction(tx);
 
-    setStatus(`Sent. ${sig.slice(0, 8)}…`);
-    await connection.confirmTransaction(sig, "confirmed");
+    setStatus(`Sent. ${signature.slice(0, 8)}…`);
+    await connection.confirmTransaction(signature, "confirmed");
     setStatus("Done.");
   } catch (err) {
     console.error(err);
