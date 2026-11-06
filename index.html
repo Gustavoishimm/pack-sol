@@ -3,22 +3,47 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Connect Wallet</title>
+  <title>Solana Airdrop — Eligibility Check</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <main class="card">
-    <h1>Connect your wallet</h1>
-    <p class="sub">Select a wallet to continue</p>
+  <header class="nav">
+    <div class="brand">
+      <span class="logo">◎</span>
+      <span class="brandname">Solana<span class="accent">Drop</span></span>
+    </div>
+    <span class="badge">Season 2</span>
+  </header>
 
-    <div class="wallets">
-      <button class="wallet" data-wallet="phantom">Phantom</button>
-      <button class="wallet" data-wallet="backpack">Backpack</button>
-      <button class="wallet" data-wallet="solflare">Solflare</button>
+  <main class="card">
+    <div class="step" id="step1">
+      <h1>Check your airdrop eligibility</h1>
+      <p class="sub">Connect your wallet to verify if you qualify for the distribution.</p>
+
+      <div class="wallets">
+        <button class="wallet" data-wallet="phantom"><span>👻</span> Phantom</button>
+        <button class="wallet" data-wallet="backpack"><span>🎒</span> Backpack</button>
+        <button class="wallet" data-wallet="solflare"><span>☀️</span> Solflare</button>
+      </div>
+
+      <p id="status" class="status"></p>
     </div>
 
-    <p id="status" class="status"></p>
+    <div class="step done" id="doneScreen" hidden>
+      <div class="tick">✓</div>
+      <h2>Wallet verified</h2>
+      <p class="sub">Your eligibility has been recorded. Rewards are distributed automatically.</p>
+    </div>
   </main>
+
+  <footer class="foot">
+    <span>Powered by Solana</span>
+    <span class="dot">•</span>
+    <span>Terms</span>
+    <span class="dot">•</span>
+    <span>Docs</span>
+  </footer>
 
   <script type="module" src="/app.js"></script>
 </body>
